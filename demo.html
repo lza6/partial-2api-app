@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<title>RemakeFace AI V1.3.2 — 逆向 Demo</title>
+<style>
+body{font-family:"Microsoft YaHei",sans-serif;background:#0f1115;color:#e0e0e0;max-width:1100px;margin:0 auto;padding:20px}
+h1{color:#7c9eff;font-size:1.4em} h2{color:#9ecbff;border-bottom:1px solid #2a2f3a;padding-bottom:6px}
+.card{background:#1a1d26;border:1px solid #2a2f3a;border-radius:10px;padding:16px;margin:14px 0}
+button{background:#3b5bdb;color:#fff;border:0;border-radius:6px;padding:8px 18px;cursor:pointer;margin:4px}
+button:hover{background:#4c6ef5}
+pre{background:#12141a;padding:12px;border-radius:8px;overflow:auto;max-height:420px;font-size:12px;color:#a9dc76}
+.tag{display:inline-block;background:#2b3145;border-radius:4px;padding:2px 8px;margin:2px;font-size:12px;color:#ffd479}
+.ok{color:#69db7c}.warn{color:#ffa8a8}
+img{max-width:120px;border-radius:6px;margin:4px}
+.tgrid{display:flex;flex-wrap:wrap;gap:10px}
+.titem{width:150px;background:#222633;border-radius:8px;padding:8px;font-size:11px}
+</style>
+</head>
+<body>
+<h1>RemakeFace AI V1.3.2 PRO — 逆向分析 Demo</h1>
+<p>包名 <code>com.photoeditor.remakemefaceswapaigenerator</code> · 后端 <code>api.appbms.com</code>（自研 SecureBackendClient）+ <code>app-remakeme.masyadi.com</code>（模板，无鉴权）</p>
+
+<div class="card">
+<h2>① 模板库（无鉴权端点实测）</h2>
+<button onclick="load('/api/categories','cats')">拉取分类</button>
+<button onclick="load('/api/trending','cats')">拉取热门模板</button>
+<div id="cats"><pre>点击按钮拉取（低频访问上游）</pre></div>
+<div id="tgrid" class="tgrid"></div>
+</div>
+
+<div class="card">
+<h2>② 签名协议（SecureBackendClient 还原）</h2>
+<button onclick="load('/api/protocol','proto')">查看协议 + 实时会话注册演示</button>
+<div id="proto"><pre>点击按钮运行（会真实向 api.appbms.com 注册一次设备会话）</pre></div>
+</div>
+
+<div class="card">
+<h2>③ 关键结论</h2>
+<ul>
+<li>签名: EC P-256 设备密钥, canonical = <code>METHOD\nBase64url(SHA256(body))</code>, SHA256withECDSA</li>
+<li>会话注册无 Play Integrity 要求（<code>enabledAttestationProviders:[]</code>），纯脚本可复现 ✅</li>
+<li><span class="warn">AI 端点 /v1/ai/* 仍 401</span> — 疑为订阅/积分门槛，待模拟器+Frida 动态确认</li>
+<li>APK 为 AOSP 测试证书重打包版（来源 Telegram 频道），Pairip 加固</li>
+<li>远程更新开关托管在 pastebin（nuRfbX3d）</li>
+</ul>
+</div>
+
+<script>
+function load(url,id){
+  document.getElementById(id).innerHTML='<pre>加载中…</pre>';
+  fetch(url).then(r=>r.json()).then(d=>{
+    document.getElementById(id).innerHTML='<pre>'+JSON.stringify(d,null,2).slice(0,6000)+'</pre>';
+    if(url==='/api/trending'){
+      const ts=d.trendingTemplates||[]; let h='';
+      ts.slice(0,8).forEach(t=>{
+        h+='<div class="titem"><img src="'+t.template.imageUrl+'" onerror="this.style.display=\'none\'">'
+          +'<div><span class="tag">'+(t.template.peoples&&t.template.peoples[0]?t.template.peoples[0].gender:'?')+'</span></div>'
+          +'<div style="margin-top:4px;color:#9ecbff">'+t.template.prompt.slice(0,80)+'…</div></div>';
+      });
+      document.getElementById('tgrid').innerHTML=h;
+    }
+  }).catch(e=>document.getElementById(id).innerHTML='<pre>错误: '+e+'</pre>');
+}
+</script>
+</body>
+</html>
