@@ -1,0 +1,10 @@
+import frida, sys
+js = open('rpc_bridge.js', encoding='utf-8').read()
+session = frida.get_usb_device().attach(int(sys.argv[1]))
+script = session.create_script(js)
+script.load()
+import time; time.sleep(2)
+print("ping:", script.exports_sync.ping())
+print("hasV14:", script.exports_sync.has_v14())
+r = script.exports_sync.request("GET", "/v1/config-apps/package/com.photoeditor.remakemefaceswapaigenerator", None)
+print("RESULT:", r[:500])
